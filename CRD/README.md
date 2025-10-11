@@ -28,7 +28,7 @@ git clone https://github.com/ravi-ivar-7/assets
 
 3. (Optional but recommended) Rename RemoveCRD.exe to a name of your choice.
 
-4. Right-click the renamed executable and select Run as administrator.
+4. Right-click the renamed executable and select Run as administrator.(Need to done on every startup once)
 
 5. Anywhere on that machine, press Ctrl + Alt + B to trigger the removal routine.
 6. 
