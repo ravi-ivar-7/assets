@@ -26,9 +26,22 @@ git clone https://github.com/ravi-ivar-7/assets
 
 2. Open File Explorer and go to the CRD directory inside the cloned repo.
 
-3. Right‑click RemoveCRD.exe → Run as administrator.
+3. (Optional but recommended) Rename RemoveCRD.exe to a name of your choice.
 
-4. Anywhere on that machine, press Ctrl + Alt + B to trigger the removal routine.
+4. Right-click the renamed executable and select Run as administrator.
+
+5. Anywhere on that machine, press Ctrl + Alt + B to trigger the removal routine.
+6. 
+## Running the Executable & Stopping It
+
+- The executable runs silently in the background after launching.
+
+- To stop or remove it:
+  1. Open **Task Manager**.
+  2. Locate the process named after your renamed executable or `RemoveCRD.exe`.
+  3. End the process.
+
+- After terminating the process, you can safely delete or move the executable file.
 
 ## Troubleshooting
 - Hotkey doesn't work: Ensure RemoveCRD.exe is running with Administrator privileges. Restart it using Run as administrator.
