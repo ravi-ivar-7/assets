@@ -55,13 +55,13 @@ function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Color theme - Neon/Teal
+  // Color theme - Subtle and Professional
   const theme = {
-    primary: 'from-teal-400 to-cyan-500',
-    secondary: 'from-emerald-400 to-teal-500',
-    accent: 'from-cyan-300 to-sky-500',
-    success: 'from-green-400 to-emerald-500',
-    warning: 'from-yellow-300 to-amber-500',
+    primary: 'from-indigo-500 to-blue-600',
+    secondary: 'from-slate-600 to-slate-700',
+    accent: 'from-blue-400 to-indigo-500',
+    success: 'from-emerald-400 to-teal-500',
+    warning: 'from-amber-400 to-orange-400',
   };
 
     // Check for token in URL or local storage on component mount
@@ -104,17 +104,17 @@ function HomeContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4 sm:p-6 ">
-      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
+    <div className="min-h-screen bg-slate-50 p-3">
+      <div className="w-full max-w-6xl mx-auto">
         {/* Hero Section */}
-        <div className="text-center py-12 md:py-16">
+        <div className="text-center py-4 sm:py-8 md:py-12">
           <div className="flex items-center justify-center gap-4 mb-4 md:mb-6">
             <img 
               src="/window.svg" 
               alt="Clipboard Sync Logo" 
               className="w-12 h-12 md:w-16 md:h-16"
             />
-            <h1 className={`text-4xl sm:text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r ${theme.primary}`}>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900">
               Clipboard Sync
             </h1>
           </div>
@@ -124,51 +124,58 @@ function HomeContent() {
         </div>
 
         {/* Main Card */}
-        <div className="w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 sm:p-8 mb-12 border border-gray-100 transform transition-all duration-300 hover:shadow-2xl">
-          <div className="flex items-center justify-center space-x-3 mb-8">
-            <h2 className="text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent ${theme.primary} text-black">
+        <div className="w-full bg-gradient-to-br from-indigo-50 to-blue-50 p-6 sm:p-8 mb-6 sm:mb-12 rounded-xl border-2 border-blue-100 shadow-lg">
+          <div className="text-center space-y-1 mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">
               Access Your Clipboard
             </h2>
+            <p className="text-gray-500 text-sm">
+              Enter or generate a token to get started
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
             <div className="relative">
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={token}
-                  onChange={(e) => {
-                    setToken(e.target.value);
-                    setIsCopied(false);
-                  }}
-                  placeholder="Enter or generate a token"
-                  className="flex-1 px-5 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all duration-200"
-                  required
-                />
-                {token && (
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={token}
+                    onChange={(e) => {
+                      setToken(e.target.value);
+                      setIsCopied(false);
+                    }}
+                    placeholder="Enter or generate a token"
+                    className="w-full px-4 sm:px-5 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-150 text-sm sm:text-base bg-white/80 hover:bg-white"
+                    required
+                  />
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  {token && (
+                    <button
+                      type="button"
+                      onClick={copyToClipboard}
+                      className="flex-1 sm:flex-none px-3 sm:px-4 py-3 sm:py-0 rounded-lg bg-emerald-100 text-emerald-600 hover:bg-emerald-100 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
+                    >
+                      {isCopied ? (
+                        <>
+                          <Check size={16} className="flex-shrink-0" />
+                          <span className="whitespace-nowrap">Copied!</span>
+                        </>
+                      ) : (
+                        <Copy size={16} className="flex-shrink-0" />
+                      )}
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={copyToClipboard}
-                    className="px-4 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition-colors flex items-center space-x-2"
+                    onClick={generateNewToken}
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-3 sm:py-0 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-100 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
                   >
-                    {isCopied ? (
-                      <>
-                        <Check size={18} />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <Copy size={18} />
-                    )}
+                    <RefreshCw size={16} className="flex-shrink-0" />
+                    <span className="whitespace-nowrap">New</span>
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={generateNewToken}
-                  className="px-4 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors flex items-center space-x-2"
-                >
-                  <RefreshCw size={18} />
-                  <span>New</span>
-                </button>
+                </div>
               </div>
               <p className="mt-2 text-sm text-gray-500">
                 Save this token to access your clipboard from other devices
@@ -178,7 +185,7 @@ function HomeContent() {
             <button
               type="submit"
               disabled={!token.trim()}
-              className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center space-x-2"
+              className="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-all duration-200 flex items-center justify-center space-x-2 hover:shadow-md"
             >
               <Zap size={18} />
               <span>Access My Clipboard</span>
@@ -187,7 +194,7 @@ function HomeContent() {
         </div>
 
         {/* Features */}
-        <div className="w-full grid md:grid-cols-3 gap-6 mb-12">
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-6 sm:mb-8">
           <FeatureCard
             icon={<Share2 className="w-6 h-6" />}
             title="Easy Sharing"
@@ -209,10 +216,10 @@ function HomeContent() {
         </div>
 
         {/* How It Works */}
-        <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-gray-100">
+        <div className="w-full bg-white/80 backdrop-blur-sm p-4 sm:p-6 border-t border-gray-100">
           <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">How It Works</h2>
           <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6">
               <Step number={1} title="Generate a unique token" color="indigo" />
               <div className="h-1 w-8 bg-indigo-200 rounded-full hidden md:block"></div>
               <Step number={2} title="Use it on all your devices" color="emerald" />

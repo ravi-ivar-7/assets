@@ -290,7 +290,7 @@ export default function TokenPage() {
         ))}
       </div>
 
-      <div className="max-w-6xl 2xl:max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 2xl:px-12 w-full">
+      <div className="max-w-7xl mx-auto lg:px-8 2xl:px-12 w-full">
         <header className="mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="w-full max-w-[1800px]">
@@ -391,8 +391,8 @@ export default function TokenPage() {
           </div>
         </div>
 
-        <div className="bg-white shadow-sm sm:shadow-md rounded-lg border border-slate-200 overflow-hidden mt-4 sm:mt-6 w-full">
-          <div className="w-full px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between bg-slate-50 border-b border-slate-200">
+        <div className="bg-white border-t border-slate-200 w-full">
+          <div className="w-full px-2 py-2 sm:px-4 sm:py-3 flex items-center justify-between bg-slate-50 border-b border-slate-200">
             <div className="flex items-center">
               <button
                 onClick={(e) => {
