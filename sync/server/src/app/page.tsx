@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Copy, RefreshCw, Zap, Lock, Share2, Smartphone, Check, Clipboard } from 'lucide-react';
 
@@ -49,7 +49,7 @@ const Step = ({ number, title, color }: { number: number; title: string; color: 
   );
 };
 
-export default function Home() {
+function HomeContent() {
   const [token, setToken] = useState('');
   const [isCopied, setIsCopied] = useState(false);
   const router = useRouter();
@@ -228,5 +228,14 @@ export default function Home() {
         <p>© {new Date().getFullYear()} Clipboard Sync. All rights reserved.</p>
       </footer>
     </div>
+  );
+}
+
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
