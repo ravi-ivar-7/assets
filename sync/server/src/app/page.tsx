@@ -1,314 +1,232 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import dynamic from 'next/dynamic';
-import { ClipboardItem } from '@/types/clipboard';
-import { Copy, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Copy, RefreshCw, Zap, Lock, Share2, Smartphone, Check, Clipboard } from 'lucide-react';
 
-type Toast = {
-  id: number;
-  message: string;
-  isError: boolean;
+const FeatureCard = ({ icon, title, description, color }: { icon: React.ReactNode, title: string, description: string, color: string }) => {
+  const colorMap: Record<string, string> = {
+    indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    rose: 'bg-rose-50 text-rose-600 border-rose-100',
+    violet: 'bg-violet-50 text-violet-600 border-violet-100',
+    cyan: 'bg-cyan-50 text-cyan-600 border-cyan-100',
+  };
+
+  const bgClass = colorMap[color] || colorMap['indigo'];
+  
+  return (
+    <div className={`p-6 rounded-2xl bg-white/90 backdrop-blur-sm border ${bgClass.split(' ')[2]} hover:shadow-lg transition-all duration-300 hover:-translate-y-1`}>
+      <div className={`w-12 h-12 rounded-xl ${bgClass.split(' ')[0]} flex items-center justify-center ${bgClass.split(' ')[1]} mb-4`}>
+        {icon}
+      </div>
+      <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>
+      <p className="text-gray-600">{description}</p>
+    </div>
+  );
 };
 
-// Dynamically import the ClipboardHistory component with no SSR
-const ClipboardHistory = dynamic(
-  () => import('@/components/ClipboardHistory'),
-  { ssr: false }
-);
+const Step = ({ number, title, color }: { number: number; title: string; color: string }) => {
+  const colorMap: Record<string, string> = {
+    indigo: 'text-indigo-600 bg-indigo-50',
+    emerald: 'text-emerald-600 bg-emerald-50',
+    amber: 'text-amber-600 bg-amber-50',
+    rose: 'text-rose-600 bg-rose-50',
+    violet: 'text-violet-600 bg-violet-50',
+    cyan: 'text-cyan-600 bg-cyan-50',
+  };
+
+  const colorClass = colorMap[color] || colorMap['indigo'];
+  
+  return (
+    <div className="flex items-center space-x-4">
+      <div className={`w-8 h-8 rounded-full ${colorClass.split(' ')[1]} flex-shrink-0 flex items-center justify-center ${colorClass.split(' ')[0]} font-medium`}>
+        {number}
+      </div>
+      <span className="text-gray-700">{title}</span>
+    </div>
+  );
+};
 
 export default function Home() {
-  const [clipboardContent, setClipboardContent] = useState('');
-  const [clipboardHistory, setClipboardHistory] = useState<ClipboardItem[]>([]);
-  const [isOnline, setIsOnline] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const toastId = useRef(0);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Show toast message
-  const showToast = useCallback((message: string, isError = false) => {
-    const id = toastId.current++;
-    setToasts(prev => [...prev, { id, message, isError }]);
-    
-    setTimeout(() => {
-      setToasts(prev => prev.filter(toast => toast.id !== id));
-    }, 3000);
-  }, []);
-
-  // Check connection status
-  const checkConnection = useCallback(async () => {
-    try {
-      const response = await fetch('/api/clipboard', { method: 'HEAD' });
-      const isConnected = response.ok;
-      setIsOnline(isConnected);
-      return isConnected;
-    } catch (error) {
-      setIsOnline(false);
-      return false;
-    }
-  }, []);
-
-  // Fetch clipboard history from server
-  const fetchClipboardHistory = useCallback(async () => {
-    try {
-      const response = await fetch('/api/clipboard');
-      if (response.ok) {
-        const data = await response.json();
-        setClipboardHistory(data.items || []);
-        setLastSynced(new Date());
-      }
-    } catch (error) {
-      console.error('Error fetching clipboard history:', error);
-      showToast('Failed to fetch clipboard history', true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showToast]);
-
-  // Save content to server
-  const saveToServer = useCallback(async () => {
-    if (!clipboardContent.trim()) {
-      showToast('Please enter some content', true);
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/clipboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: clipboardContent.trim() })
-      });
-
-      if (response.ok) {
-        await fetchClipboardHistory();
-        setClipboardContent('');
-        showToast('Content saved successfully');
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-        }
-      } else {
-        throw new Error('Failed to save content');
-      }
-    } catch (error) {
-      console.error('Error saving content:', error);
-      showToast('Failed to save content', true);
-    }
-  }, [clipboardContent, fetchClipboardHistory, showToast]);
-
-  // Handle textarea key down
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && e.shiftKey) {
-      e.preventDefault();
-      saveToServer();
-    }
-  };
-
-  // Handle textarea input
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setClipboardContent(e.target.value);
-  };
-
-  // Clear all clipboard history
-  const clearClipboardHistory = useCallback(async () => {
-    try {
-      const response = await fetch('/api/clipboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'clear' })
-      });
-
-      if (response.ok) {
-        setClipboardHistory([]);
-        showToast('Clipboard history cleared');
-      } else {
-        throw new Error('Failed to clear history');
-      }
-    } catch (error) {
-      console.error('Error clearing clipboard history:', error);
-      showToast('Failed to clear clipboard history', true);
-    }
-  }, [showToast]);
-
-  // Copy content to clipboard
-  const copyToClipboard = useCallback((content: string) => {
-    navigator.clipboard.writeText(content)
-      .then(() => showToast('Copied to clipboard!'))
-      .catch(() => showToast('Failed to copy to clipboard', true));
-  }, [showToast]);
-
-  // Get configuration from environment variables with defaults
-  const POLLING_INTERVAL = process.env.NEXT_PUBLIC_POLLING_INTERVAL 
-    ? parseInt(process.env.NEXT_PUBLIC_POLLING_INTERVAL, 10) 
-    : 5000; // Default to 5 seconds
+  const [token, setToken] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   
-  const MAX_HISTORY_ITEMS = process.env.NEXT_PUBLIC_MAX_HISTORY_ITEMS 
-    ? parseInt(process.env.NEXT_PUBLIC_MAX_HISTORY_ITEMS, 10) 
-    : 50; // Default to 50 items
+  // Color theme - Neon/Teal
+  const theme = {
+    primary: 'from-teal-400 to-cyan-500',
+    secondary: 'from-emerald-400 to-teal-500',
+    accent: 'from-cyan-300 to-sky-500',
+    success: 'from-green-400 to-emerald-500',
+    warning: 'from-yellow-300 to-amber-500',
+  };
 
-  // Initial load and setup polling
-  useEffect(() => {
-    let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
+    // Check for token in URL or local storage on component mount
+    useEffect(() => {
+        // Check for token in URL first (for backward compatibility)
+        const urlToken = searchParams?.get('token');
 
-    const poll = async () => {
-      if (!isMounted) return;
-      
-      try {
-        const isConnected = await checkConnection();
-        if (isConnected) {
-          await fetchClipboardHistory();
+        // Then check local storage
+        const storedToken = localStorage.getItem('clipboardSyncToken');
+
+        if (urlToken) {
+            // If token is in URL, save it to local storage and redirect
+            localStorage.setItem('clipboardSyncToken', urlToken);
+            router.replace(`/${urlToken}`);
+        } else if (storedToken) {
+            // If token is in local storage, pre-fill the input
+            setToken(storedToken);
         }
-      } catch (error) {
-        console.error('Error during polling:', error);
-      } finally {
-        if (isMounted) {
-          timeoutId = setTimeout(poll, POLLING_INTERVAL);
+    }, [searchParams, router]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (token.trim()) {
+            router.push(`/${token}`);
         }
-      }
     };
 
-    // Initial fetch
-    poll();
+  const generateNewToken = () => {
+    const newToken = `token_${Math.random().toString(36).substr(2, 9)}`;
+    setToken(newToken);
+    setIsCopied(false);
+  };
 
-    // Cleanup function
-    return () => {
-      isMounted = false;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [checkConnection, fetchClipboardHistory]);
+  const copyToClipboard = () => {
+    if (token) {
+      navigator.clipboard.writeText(token);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      {/* Toast Notifications */}
-      <div className="fixed top-4 right-4 z-50 space-y-2 w-80">
-        {toasts.map(toast => (
-          <div 
-            key={toast.id}
-            className={`p-4 rounded-md shadow-lg ${
-              toast.isError 
-                ? 'bg-red-100 border-l-4 border-red-500 text-red-700' 
-                : 'bg-green-100 border-l-4 border-green-500 text-green-700'
-            }`}
-          >
-            <p className="text-sm">{toast.message}</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4 sm:p-6 ">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
+        {/* Hero Section */}
+        <div className="text-center py-12 md:py-16">
+          <div className="flex items-center justify-center gap-4 mb-4 md:mb-6">
+            <img 
+              src="/window.svg" 
+              alt="Clipboard Sync Logo" 
+              className="w-12 h-12 md:w-16 md:h-16"
+            />
+            <h1 className={`text-4xl sm:text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r ${theme.primary}`}>
+              Clipboard Sync
+            </h1>
           </div>
-        ))}
-      </div>
-
-      <div className="max-w-4xl mx-auto py-4 px-3 sm:px-4 min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        {/* Debug info - can be removed in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="text-xs text-gray-500 mb-2">
-            Polling: {POLLING_INTERVAL}ms | Max Items: {MAX_HISTORY_ITEMS}
-          </div>
-        )}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Clipboard Sync</h1>
-          <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-            {isOnline ? 'Connected' : 'Offline'}
-          </div>
+          <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto px-4">
+            Seamlessly sync your clipboard across all your devices
+          </p>
         </div>
 
-        {/* Input Area */}
-        <div className="bg-white shadow-md rounded-lg p-4 mb-4 border border-slate-200">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Add New Content</h2>
-          <div className="space-y-4">
-            <div>
-              <textarea
-                ref={textareaRef}
-                id="content"
-                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md p-3"
-                placeholder="Type something to copy... (Shift+Enter to save)"
-                value={clipboardContent}
-                onChange={handleInput}
-                onKeyDown={handleKeyDown}
-                rows={5}
-                style={{ minHeight: '100px' }}
-              />
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={saveToServer}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!clipboardContent.trim()}
-              >
-                Save
-              </button>
-            </div>
+        {/* Main Card */}
+        <div className="w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 sm:p-8 mb-12 border border-gray-100 transform transition-all duration-300 hover:shadow-2xl">
+          <div className="flex items-center justify-center space-x-3 mb-8">
+            <h2 className="text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent ${theme.primary} text-black">
+              Access Your Clipboard
+            </h2>
           </div>
-        </div>
 
-        <div className="bg-white shadow-md rounded-lg border border-slate-200 overflow-hidden">
-          <div className="w-full px-4 py-3 flex items-center bg-slate-50 border-b border-slate-200">
-            {/* Clear All on the left */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="relative">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={token}
+                  onChange={(e) => {
+                    setToken(e.target.value);
+                    setIsCopied(false);
+                  }}
+                  placeholder="Enter or generate a token"
+                  className="flex-1 px-5 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all duration-200"
+                  required
+                />
+                {token && (
+                  <button
+                    type="button"
+                    onClick={copyToClipboard}
+                    className="px-4 rounded-xl bg-green-50 text-green-600 hover:bg-green-100 transition-colors flex items-center space-x-2"
+                  >
+                    {isCopied ? (
+                      <>
+                        <Check size={18} />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <Copy size={18} />
+                    )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={generateNewToken}
+                  className="px-4 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors flex items-center space-x-2"
+                >
+                  <RefreshCw size={18} />
+                  <span>New</span>
+                </button>
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Save this token to access your clipboard from other devices
+              </p>
+            </div>
+
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                clearClipboardHistory();
-              }}
-              className="text-sm text-red-600 hover:text-red-800 transition-colors flex items-center gap-1 mr-4"
+              type="submit"
+              disabled={!token.trim()}
+              className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center space-x-2"
             >
-              <Trash2 className="h-4 w-4" />
-              <span>Clear All</span>
+              <Zap size={18} />
+              <span>Access My Clipboard</span>
             </button>
-            
-            {/* Title in the center */}
-            <h2 className="text-lg font-medium text-gray-900 mx-auto">Clipboard History</h2>
-            
-            {/* Last synced on the right */}
-            <div className="flex items-center">
-              {lastSynced && (
-                <span className="text-sm text-gray-500 mr-4">
-                  Last synced: {lastSynced.toLocaleTimeString()}
-                </span>
-              )}
+          </form>
+        </div>
+
+        {/* Features */}
+        <div className="w-full grid md:grid-cols-3 gap-6 mb-12">
+          <FeatureCard
+            icon={<Share2 className="w-6 h-6" />}
+            title="Easy Sharing"
+            description="Quickly share clipboard content between devices"
+            color="violet"
+          />
+          <FeatureCard
+            icon={<RefreshCw className="w-6 h-6" />}
+            title="Sync in Real-Time"
+            description="See updates instantly across all connected devices"
+            color="indigo"
+          />
+          <FeatureCard
+            icon={<Zap className="w-6 h-6" />}
+            title="Lightning Fast"
+            description="Minimal delay between copying and pasting"
+            color="cyan"
+          />
+        </div>
+
+        {/* How It Works */}
+        <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-gray-100">
+          <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">How It Works</h2>
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+              <Step number={1} title="Generate a unique token" color="indigo" />
+              <div className="h-1 w-8 bg-indigo-200 rounded-full hidden md:block"></div>
+              <Step number={2} title="Use it on all your devices" color="emerald" />
+              <div className="h-1 w-8 bg-emerald-200 rounded-full hidden md:block"></div>
+              <Step number={3} title="Your clipboard syncs automatically" color="amber" />
             </div>
-            {isHistoryCollapsed ? (
-              <svg 
-                className="h-5 w-5 text-gray-400" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-                onClick={() => setIsHistoryCollapsed(false)}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            ) : (
-              <svg 
-                className="h-5 w-5 text-gray-400" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-                onClick={() => setIsHistoryCollapsed(true)}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-            )}
           </div>
-          
-          {!isHistoryCollapsed && (
-            <div className="px-4 py-3 bg-gradient-to-b from-white to-slate-50">
-              {isLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                  <p className="mt-2 text-sm text-gray-500">Loading clipboard history...</p>
-                </div>
-              ) : (
-                <div className="mt-2">
-                  <ClipboardHistory 
-                    items={clipboardHistory} 
-                    onCopy={copyToClipboard}
-                  />
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-16 text-center text-gray-500 text-sm">
+        <p>© {new Date().getFullYear()} Clipboard Sync. All rights reserved.</p>
+      </footer>
     </div>
   );
 }

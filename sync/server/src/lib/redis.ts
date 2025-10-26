@@ -5,7 +5,9 @@ export const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 })
 
-const CLIPBOARD_LIST_KEY = 'clipboard_history';
+// Helper function to get token-based key
+const getClipboardKey = (token: string) => `clipboard:${token}`;
+
 // Get max items from environment variable or use default
 const MAX_ITEMS = process.env.NEXT_PUBLIC_MAX_HISTORY_ITEMS 
   ? parseInt(process.env.NEXT_PUBLIC_MAX_HISTORY_ITEMS, 10)
@@ -17,10 +19,15 @@ interface ClipboardItem {
   timestamp: number;
 }
 
-// Get all clipboard items, most recent first
-export async function getClipboardHistory(): Promise<ClipboardItem[]> {
+// Get all clipboard items for a specific token, most recent first
+export async function getClipboardHistory(token: string): Promise<ClipboardItem[]> {
+  if (!token) {
+    throw new Error('Token is required');
+  }
+  
   try {
-    const items = await redis.lrange(CLIPBOARD_LIST_KEY, 0, MAX_ITEMS - 1);
+    const clipboardKey = getClipboardKey(token);
+    const items = await redis.lrange(clipboardKey, 0, MAX_ITEMS - 1);
     
     if (!Array.isArray(items)) {
       console.error('Unexpected Redis response format - not an array');
@@ -57,30 +64,42 @@ export async function getClipboardHistory(): Promise<ClipboardItem[]> {
   }
 }
 
-// Add new clipboard item
-export async function addToClipboard(content: string): Promise<void> {
+// Add new clipboard item for a specific token
+export async function addToClipboard(token: string, content: string): Promise<ClipboardItem> {
+  if (!token) {
+    throw new Error('Token is required');
+  }
+  
   try {
     const newItem: ClipboardItem = {
-      id: Date.now().toString(),
+      id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
       content: content,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     };
 
     // Ensure we're storing a properly stringified JSON object
     const itemString = JSON.stringify(newItem);
+    const clipboardKey = getClipboardKey(token);
     
     // Add to the beginning of the list
-    await redis.lpush(CLIPBOARD_LIST_KEY, itemString);
+    await redis.lpush(clipboardKey, itemString);
     
     // Trim the list to keep only the latest items
-    await redis.ltrim(CLIPBOARD_LIST_KEY, 0, MAX_ITEMS - 1);
+    await redis.ltrim(clipboardKey, 0, MAX_ITEMS - 1);
+    
+    return newItem;
   } catch (error) {
     console.error('Error adding to clipboard:', error);
     throw error; // Re-throw to be handled by the API route
   }
 }
 
-// Clear all clipboard history
-export async function clearClipboardHistory(): Promise<void> {
-  await redis.del(CLIPBOARD_LIST_KEY);
+// Clear all clipboard history for a specific token
+export async function clearClipboardHistory(token: string): Promise<void> {
+  if (!token) {
+    throw new Error('Token is required');
+  }
+  
+  const clipboardKey = getClipboardKey(token);
+  await redis.del(clipboardKey);
 }

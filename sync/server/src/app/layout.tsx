@@ -18,6 +18,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Clipboard Sync',
   description: 'Sync your clipboard across devices',
+  icons: {
+    icon: '/window.svg',
+    shortcut: '/window.svg',
+    apple: '/window.svg',
+  },
 };
 
 export default function RootLayout({

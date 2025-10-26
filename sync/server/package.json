@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "vercel-build": "next build"
   },
   "dependencies": {
     "@upstash/redis": "^1.35.6",
