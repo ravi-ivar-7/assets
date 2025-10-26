@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getClipboardHistory, addToClipboard, clearClipboardHistory } from '../../../../lib/redis';
 
-type Params = {
-  params: {
+type Context = {
+  params: Promise<{
     token: string;
-  };
+  }>;
 };
 
 export async function GET(
   request: NextRequest, 
-  { params }: { params: { token: string } }
+  context: Context
 ) {
-  const { token } = await Promise.resolve(params);
+  const { token } = await context.params;
   
   if (!token) {
     return NextResponse.json(
@@ -34,9 +34,9 @@ export async function GET(
 
 export async function POST(
   request: NextRequest, 
-  { params }: { params: { token: string } }
+  context: Context
 ) {
-  const { token } = await Promise.resolve(params);
+  const { token } = await context.params;
   
   if (!token) {
     return NextResponse.json(
